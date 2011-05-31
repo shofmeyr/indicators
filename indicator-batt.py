@@ -42,11 +42,13 @@ class FetcherThread(threading.Thread):
                 else: perc = 100
                 self.parent.updatePercMenuItem("%.0f" % battPerc + "%")
                 if onBatt: self.parent.setIcon("gpm-battery-%03d" % perc)
-                else: self.parent.setIcon("gpm-battery-%03d-charging" % perc)
+                else: 
+                    self.parent.setIcon("gpm-battery-%03d-charging" % perc)
+                    if battTime == "00:00": self.parent.updateText("")
             time.sleep(1)
             i += 1
 
-class IndicatorAll:
+class IndicatorBatt:
     def __init__(self):
         self.ind = appindicator.Indicator("indicator-batt", "", appindicator.CATEGORY_SYSTEM_SERVICES)
         self.ind.set_status(appindicator.STATUS_ACTIVE)
@@ -78,7 +80,7 @@ class IndicatorAll:
         except RuntimeError: pass
 
 def main(args):
-    i = IndicatorAll()
+    i = IndicatorBatt()
     try:
         gtk.main()
     except KeyboardInterrupt:
