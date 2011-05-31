@@ -3,6 +3,7 @@
 # gets gmail from atom feed
 
 import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, pygame, feedparser, urllib, pynotify, optparse
+import getpass
 
 optParser = optparse.OptionParser()
 optParser.add_option("-u", action = "store", type = "string", dest = "username",
@@ -27,8 +28,13 @@ class GnomeKeyring():
             return None
         keys = gnomekeyring.list_item_ids_sync("login")
         for k in keys:
-            item = gnomekeyring.item_get_info_sync("login", k)
-            if key in item.get_display_name(): return item.get_secret()
+            try:
+                item = gnomekeyring.item_get_info_sync("login", k)
+                if key in item.get_display_name(): return item.get_secret()
+            except Exception as ex:
+                logging.info("Need to unlock login keyring: " + ex.message)
+                gnomekeyring.unlock_sync("login", getpass.getpass('Password: '))
+
         logging.error("Cannot get passwords for " + key + " from gnome keyring: not found")
         return None
     getPasswd = classmethod(getPasswd)
