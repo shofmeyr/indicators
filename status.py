@@ -33,9 +33,12 @@ class Status():
         tempStr = subprocess.Popen("sensors", 
                                    stdout=subprocess.PIPE, shell=True).communicate()[0].strip()
         temp = -1
-        if len(tempStr) > 0:
-            m = Status.tempRe.match(tempStr)
-            if m != None: temp = float(m.group(1))
+        lines = tempStr.split("\n")
+        for line in lines:
+            m = Status.tempRe.match(line)
+            if m != None: 
+                temp = float(m.group(1))
+                break
         return (temp, tempStr)
     getTemp = classmethod(getTemp)
 

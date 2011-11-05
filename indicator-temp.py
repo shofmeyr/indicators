@@ -37,14 +37,14 @@ class IndicatorTemp:
     def check_temp(self, event=None):
         if self.checking_temp: return gtk.TRUE
         self.checking_temp = True
-        temp, tempStr = Status.getTemp()
+        (temp, temp_str) = Status.getTemp()
         if temp < 50: iconNum = 1
         elif temp < 70: iconNum = 2
         elif temp < 80: iconNum = 3
         elif temp < 90: iconNum = 4
         else: iconNum = 5
         self.ind.set_icon("temp-%d" % iconNum)
-        self.tempMenuItem.set_label(tempStr)
+        self.tempMenuItem.set_label(temp_str)
         self.checking_temp = False
         return gtk.TRUE
 
