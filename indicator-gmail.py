@@ -114,7 +114,7 @@ class MsgMenuItem(gtk.MenuItem):
 
 class IndicatorGmail:
     def __init__(self):
-        self.ind = appindicator.Indicator("indicator-gmail-" + options.id, "indicator-messages", 
+        self.ind = appindicator.Indicator("indicator-gmail-" + options.id, "",
                                           appindicator.CATEGORY_SYSTEM_SERVICES)
         self.ind.set_status(appindicator.STATUS_ACTIVE)
         self.ind.set_label("")
@@ -124,6 +124,8 @@ class IndicatorGmail:
         self.menu.show_all()
         self.ind.set_menu(self.menu)
         self.checking_mail = False
+        self.ind.set_icon("indicator-messages")
+        self.checkMail()
         self.fetch_timer = gtk.timeout_add(20000, self.checkMail)
         
     def checkMail(self, event=None):
@@ -144,10 +146,13 @@ class IndicatorGmail:
                 hasChanged = True
                 self.addToMenu("       " + h[0], options.account + "/#inbox/%x" % h[1], h[1])
         # set the text on the panel
-        self.ind.set_label("%d" % len(headers))
+        num_messages = len(headers)
+        if num_messages > 21: num_messages = 21
+        self.ind.set_label("%d" % num_messages)
         if len(headers) > 0: 
-            if options.color == "red": self.ind.set_icon("new-messages-red")
-            else: self.ind.set_icon("indicator-messages-new")
+            if options.color == "red": icon_name = "new-messages-red-%d" % num_messages
+            else: icon_name = "indicator-messages-new-%d" % num_messages
+            self.ind.set_icon(icon_name)
         else: self.ind.set_icon("indicator-messages") 
         if hasChanged: self.menu.show_all()
         self.checking_mail = False
