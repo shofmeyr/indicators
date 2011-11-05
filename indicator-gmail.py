@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+# if the icons don't show up, get rid of or update the icon cache, eg at 
+# /usr/share/icons/ubuntu-mono-dark/icon-theme.cache
+
+
+
 # gets gmail from atom feed
 
 import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, pygame, feedparser, urllib, pynotify, optparse
@@ -9,10 +14,15 @@ optParser = optparse.OptionParser()
 optParser.add_option("-u", action = "store", type = "string", dest = "username",
                             default = "", help = "Username for gmail account. Password is found in gnome keyring.")
 optParser.add_option("-a", action = "store", type = "string", dest = "account", 
-                            default = "https://mail.gmail.com/mail", help = "Gmail account http address")
+                            default = "https://mail.google.com/mail", help = "Gmail account http address")
 optParser.add_option("-i", action = "store", type = "string", dest = "id", 
                             default = "id", help = "A unique id")
+optParser.add_option("-s", action = "store", type = "string", dest = "sound", 
+                     default = "/usr/share/sounds/ubuntu/stereo/message-new-instant.ogg", help = "sound file")
+optParser.add_option("-c", action = "store", type = "string", dest = "color",
+                     default = "blue", help = "color for new message icon (red or blue)")
 options = optParser.parse_args()[0]
+print options
 
 #logging.basicConfig(file=open("/tmp/indicator-gmail-" + options.id + ".log", "w+"),level=logging.INFO)
 logging.basicConfig(file = sys.stdout, level = logging.INFO)
@@ -61,16 +71,18 @@ class Gmail():
         if self.passwd == None: logging.error("Cannot get password for", username, "from gnome keyring")
         self.unreadCount = 0
         self.msgIds = {}
+        self.opener = urllib.FancyURLopener()
 
     def getHeaders(self):
         headers = []
         unreadCount = 0
         try:
-            opener = urllib.FancyURLopener()
-            f = opener.open("https://%s:%s@mail.google.com/mail/feed/atom" % (self.username, self.passwd))
+            f = self.opener.open("https://%s:%s@mail.google.com/mail/feed/atom" % (self.username, self.passwd))
+#            f = opener.open("https://mail.google.com/mail/feed/atom")
             feed = f.read()
             atom = feedparser.parse(feed)
-            # print atom.feed.title + (": %d" % len(atom.entries)) + " unread messages"
+            if len(atom.entries) != self.unreadCount: 
+                print atom.feed.title + (": %d" % len(atom.entries)) + " unread messages"
             # we have not yet seen any of the previous msgs
             for key in self.msgIds.keys(): self.msgIds[key] = ""
             for entry in atom.entries:
@@ -81,7 +93,8 @@ class Gmail():
                 if not msgId in self.msgIds:
                     # Now pop up the message
                     pynotify.init(self.username)
-                    notification = pynotify.Notification(entry.title + " (" + author + ")", entry.summary, "evolution")
+                    notification = pynotify.Notification(entry.title + " (" + author + ")", 
+                                                         entry.summary, "evolution")
                     notification.show()
                     # set to seen
                     self.msgIds[msgId] = "New"
@@ -94,7 +107,7 @@ class Gmail():
             
             unreadCount = len(headers)
             while unreadCount > self.unreadCount:
-                pygame.mixer.Sound("/usr/share/sounds/ubuntu/stereo/message-new-instant.ogg").play()
+                pygame.mixer.Sound(options.sound).play()
                 time.sleep(1)
                 self.unreadCount += 1
             self.unreadCount = unreadCount
@@ -148,12 +161,17 @@ class IndicatorGmail:
                 self.addToMenu("       " + h[0], options.account + "/#inbox/%x" % h[1], h[1])
         # set the text on the panel
         self.ind.set_label("%d" % len(headers))
-        if len(headers) > 0: self.ind.set_icon("indicator-messages-new")
+        if len(headers) > 0: 
+            if options.color == "red": self.ind.set_icon("new-messages-red")
+            else: self.ind.set_icon("indicator-messages-new")
         else: self.ind.set_icon("indicator-messages") 
+#        if len(headers) > 0: self.ind.set_icon("temperature-1-icon")
+#        else: self.ind.set_icon("user-busy-panel") 
         if hasChanged: self.menu.show_all()
 
     def onMailActivated(self, event=None):
-        os.system("/usr/bin/firefox -new-window " + event.getMsg())
+#        os.system("/usr/bin/firefox -new-window " + event.getMsg())
+        os.system("/usr/bin/firefox " + event.getMsg())
         
     def addToMenu(self, text, msg, msgId):
         i = MsgMenuItem(text, msg, msgId)
