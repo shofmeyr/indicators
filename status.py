@@ -6,6 +6,7 @@ import pygame, email.parser, feedparser, urllib
 class Status():
     pingRe = re.compile("rtt min/avg/max/mdev = (\d+.\d+)")
     netRe = re.compile(r"\s*\S+:\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+")
+    tempRe = re.compile("Physical id 0:\s+\+(\d+.\d+)")
     inb = 0
     outb = 0
     lastTime = time.time()
@@ -29,10 +30,13 @@ class Status():
     getPingTime = classmethod(getPingTime)
 
     def getTemp(cls):
-        f = open("/sys/class/thermal/thermal_zone0/temp", "r")
-        temp = f.readline() 
-        f.close()
-        return float(temp) / 1000.0
+        tempStr = subprocess.Popen("sensors", 
+                                   stdout=subprocess.PIPE, shell=True).communicate()[0].strip()
+        temp = -1
+        if len(tempStr) > 0:
+            m = Status.tempRe.match(tempStr)
+            if m != None: temp = float(m.group(1))
+        return (temp, tempStr)
     getTemp = classmethod(getTemp)
 
     def getBattery(cls):

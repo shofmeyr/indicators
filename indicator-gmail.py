@@ -124,7 +124,6 @@ class IndicatorGmail:
         self.menu.show_all()
         self.ind.set_menu(self.menu)
         self.checking_mail = False
-        self.ind.set_icon("indicator-messages")
         self.checkMail()
         self.fetch_timer = gtk.timeout_add(20000, self.checkMail)
         
@@ -168,8 +167,7 @@ class IndicatorGmail:
 
     def onExit(self, event=None):
         logging.info("Terminated")
-        try: gtk.main_quit()
-        except RuntimeError: pass
+        gtk.main_quit()
 
 def main(args):
     i = IndicatorGmail()
