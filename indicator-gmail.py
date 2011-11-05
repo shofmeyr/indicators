@@ -7,8 +7,8 @@
 
 # gets gmail from atom feed
 
-import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, pygame, feedparser, urllib, pynotify, optparse
-import getpass
+import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, pygame, feedparser, urllib, \
+    pynotify, optparse, getpass
 
 optParser = optparse.OptionParser()
 optParser.add_option("-u", action = "store", type = "string", dest = "username",
@@ -24,12 +24,12 @@ optParser.add_option("-c", action = "store", type = "string", dest = "color",
 options = optParser.parse_args()[0]
 print options
 
-#logging.basicConfig(file=open("/tmp/indicator-gmail-" + options.id + ".log", "w+"),level=logging.INFO)
 logging.basicConfig(file = sys.stdout, level = logging.INFO)
 gtk.gdk.threads_init()
 pygame.init()
 
-logging.info("gmail indicator starting for " + options.username + ", account " + options.account + ", id " + options.id)
+logging.info("gmail indicator starting for " + options.username + ", account " + options.account + ", id " + \
+                 options.id)
 
 class GnomeKeyring():
     def getPasswd(cls, key):
@@ -49,21 +49,6 @@ class GnomeKeyring():
         return None
     getPasswd = classmethod(getPasswd)
     
-class FetcherThread(threading.Thread):
-    def __init__(self, parent):
-        threading.Thread.__init__(self)
-        self.parent = parent
-        self.mustExit = False
-
-    def run(self):
-        i = 0
-        while(self.parent.alive.isSet()):
-            if self.mustExit: return
-            # check mail every 10s
-            if not (i % 10): self.parent.checkMail()
-            time.sleep(1)
-            i += 1
-
 class Gmail():
     def __init__(self, username, userkey):
         self.username = username
@@ -78,7 +63,6 @@ class Gmail():
         unreadCount = 0
         try:
             f = self.opener.open("https://%s:%s@mail.google.com/mail/feed/atom" % (self.username, self.passwd))
-#            f = opener.open("https://mail.google.com/mail/feed/atom")
             feed = f.read()
             atom = feedparser.parse(feed)
             if len(atom.entries) != self.unreadCount: 
@@ -139,12 +123,12 @@ class IndicatorGmail:
         self.addToMenu(options.username, options.account + "/#inbox", "0")
         self.menu.show_all()
         self.ind.set_menu(self.menu)
-        self.alive = threading.Event()
-        self.alive.set()
-        self.fetcherThread = FetcherThread(self)
-        self.fetcherThread.start()
+        self.checking_mail = False
+        self.fetch_timer = gtk.timeout_add(20000, self.checkMail)
         
-    def checkMail(self):
+    def checkMail(self, event=None):
+        if self.checking_mail: return gtk.TRUE
+        self.checking_mail = True
         headers, msgIds = self.gmail.getHeaders()
         hasChanged = False
         # remove messages that are no longer in the list, skipping the first element
@@ -165,12 +149,11 @@ class IndicatorGmail:
             if options.color == "red": self.ind.set_icon("new-messages-red")
             else: self.ind.set_icon("indicator-messages-new")
         else: self.ind.set_icon("indicator-messages") 
-#        if len(headers) > 0: self.ind.set_icon("temperature-1-icon")
-#        else: self.ind.set_icon("user-busy-panel") 
         if hasChanged: self.menu.show_all()
+        self.checking_mail = False
+        return gtk.TRUE
 
     def onMailActivated(self, event=None):
-#        os.system("/usr/bin/firefox -new-window " + event.getMsg())
         os.system("/usr/bin/firefox " + event.getMsg())
         
     def addToMenu(self, text, msg, msgId):
@@ -180,8 +163,6 @@ class IndicatorGmail:
 
     def onExit(self, event=None):
         logging.info("Terminated")
-        self.fetcherThread.mustExit = True
-        self.alive.clear()
         try: gtk.main_quit()
         except RuntimeError: pass
 
