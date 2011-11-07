@@ -141,9 +141,12 @@ class IndicatorGmail:
                 self.menu.remove(child) 
         # now add all new headers to the menu
         for h in headers: 
-            if msgIds[h[1]] == "New": 
-                hasChanged = True
-                self.addToMenu("       " + h[0], options.account + "/#inbox/%x" % h[1], h[1])
+            try:
+                if msgIds[h[1]] == "New": 
+                    hasChanged = True
+                    self.addToMenu("       " + h[0], options.account + "/#inbox/%x" % h[1], h[1])
+            except Exception as ex:
+                logging.error("Error setting menu:", ex.message)
         # set the text on the panel
         num_messages = len(headers)
         if num_messages > 21: num_messages = 21
