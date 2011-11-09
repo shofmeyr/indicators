@@ -24,7 +24,8 @@ optParser.add_option("-c", action = "store", type = "string", dest = "color",
 options = optParser.parse_args()[0]
 print options
 
-logging.basicConfig(file = sys.stdout, level = logging.INFO)
+logging.basicConfig(file=sys.stdout, level=logging.INFO, 
+                    format="%(asctime)-15s " + options.id + ": %(message)s")
 gtk.gdk.threads_init()
 pygame.init()
 
@@ -66,7 +67,7 @@ class Gmail():
             feed = f.read()
             atom = feedparser.parse(feed)
             if len(atom.entries) != self.unreadCount: 
-                print atom.feed.title + (": %d" % len(atom.entries)) + " unread messages"
+                logging.info(atom.feed.title + (": %d" % len(atom.entries)) + " unread messages")
             # we have not yet seen any of the previous msgs
             for key in self.msgIds.keys(): self.msgIds[key] = ""
             for entry in atom.entries:
