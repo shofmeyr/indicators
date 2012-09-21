@@ -93,7 +93,7 @@ class Gmail():
             unreadCount = len(headers)
             while unreadCount > self.unreadCount:
                 pygame.mixer.Sound(options.sound).play()
-                time.sleep(1)
+                #time.sleep(1)
                 self.unreadCount += 1
             self.unreadCount = unreadCount
         except Exception as ex:
@@ -151,7 +151,7 @@ class IndicatorGmail:
         # set the text on the panel
         num_messages = len(headers)
         if num_messages > 21: num_messages = 21
-        self.ind.set_label("%d" % num_messages)
+        #self.ind.set_label("%d" % num_messages)
         if len(headers) > 0: 
             if options.color == "red": icon_name = "new-messages-red-%d" % num_messages
             else: icon_name = "indicator-messages-new-%d" % num_messages
