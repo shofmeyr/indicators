@@ -1,7 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 
-import sys, os, subprocess, time, psutil, logging, gobject, gtk, appindicator, threading, gnomekeyring, imaplib, re
-import pygame, email.parser, feedparser, urllib
+import subprocess
+import time
+import psutil
+import re
 
 class Status():
     pingRe = re.compile("rtt min/avg/max/mdev = (\d+.\d+)")
