@@ -22,7 +22,7 @@ optParser.add_option("-s", action = "store", type = "string", dest = "sound",
 optParser.add_option("-c", action = "store", type = "string", dest = "color",
                      default = "blue", help = "color for new message icon (red or blue)")
 options = optParser.parse_args()[0]
-print options
+#print options
 
 logging.basicConfig(file=sys.stdout, level=logging.INFO, 
                     format="%(asctime)-15s " + options.id + ": %(message)s")
@@ -35,7 +35,11 @@ logging.info("gmail indicator starting for " + options.username + ", account " +
 class GnomeKeyring():
     def getPasswd(cls, key):
         if not gnomekeyring.is_available(): 
-            logging.error("Cannot get passwords for " + key + " from gnome keyring: not available")
+            err_str = "Cannot get passwords for " + key + " from gnome keyring: not available"
+            logging.error(err_str)
+            pynotify.init(self.username)
+            notification = pynotify.Notification(err_str)
+            notification.show()
             return None
         keys = gnomekeyring.list_item_ids_sync("login")
         for k in keys:
@@ -46,7 +50,11 @@ class GnomeKeyring():
                 logging.info("Need to unlock login keyring: " + ex.message)
                 gnomekeyring.unlock_sync("login", getpass.getpass('Password: '))
 
-        logging.error("Cannot get passwords for " + key + " from gnome keyring: not found")
+        err_str = "Cannot get passwords for " + key + " from gnome keyring: not found"
+        logging.error(err_str)
+        pynotify.init(self.username)
+        notification = pynotify.Notification(err_str)
+        notification.show()
         return None
     getPasswd = classmethod(getPasswd)
     
@@ -58,6 +66,7 @@ class Gmail():
         self.unreadCount = 0
         self.msgIds = {}
         self.opener = urllib.FancyURLopener()
+        self.show_err = 0
 
     def getHeaders(self):
         headers = []
@@ -96,8 +105,17 @@ class Gmail():
                 #time.sleep(1)
                 self.unreadCount += 1
             self.unreadCount = unreadCount
+            self.show_err = 0
         except Exception as ex:
-            logging.error("Cannot get gmail subjects for " + self.username + ":" + ex.message)
+            err_str = "Cannot get gmail subjects for " + self.username + ":" + ex.message
+            logging.error(err_str)
+            self.show_err += 1
+            if self.show_err > 5:
+                pynotify.init(self.username)
+                notification = pynotify.Notification(err_str)
+                notification.show()
+                self.show_err = 0
+        
         # returns both the list of headers, and the list of msg ids that remain
         return headers, self.msgIds
 
@@ -120,7 +138,7 @@ class IndicatorGmail:
         self.ind.set_status(appindicator.STATUS_ACTIVE)
         self.ind.set_label("")
         self.menu = gtk.Menu()
-        self.gmail = Gmail(options.username, "Gmail password for " + options.username)
+        self.gmail = Gmail(options.username, options.username)
         self.addToMenu(options.username, options.account + "/#inbox", "0")
         self.menu.show_all()
         self.ind.set_menu(self.menu)
@@ -152,11 +170,11 @@ class IndicatorGmail:
         num_messages = len(headers)
         if num_messages > 21: num_messages = 21
         #self.ind.set_label("%d" % num_messages)
-        if len(headers) > 0: 
+        if num_messages > 0:
             if options.color == "red": icon_name = "new-messages-red-%d" % num_messages
             else: icon_name = "indicator-messages-new-%d" % num_messages
-            self.ind.set_icon(icon_name)
-        else: self.ind.set_icon("indicator-messages") 
+        else: icon_name = "indicator-messages"
+        self.ind.set_icon(icon_name)
         if hasChanged: self.menu.show_all()
         self.checking_mail = False
         return gtk.TRUE

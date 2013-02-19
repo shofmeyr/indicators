@@ -16,13 +16,14 @@ class Status():
     getCpuPerc = classmethod(getCpuPerc)
 
     def getMemPerc(cls):
-        return "%03d" % int(100.0 * (1.0 - float(psutil.avail_virtmem()) / float(psutil.total_virtmem()))) + "m% "
+        return "%03d" % int(100.0 * (1.0 - float(psutil.avail_virtmem()) / float(psutil.total_virtmem()))) + \
+            "m% "
     getMemPerc = classmethod(getMemPerc)
 
-    def getPingTime(cls):
-        pingStr = subprocess.Popen("ping -c 1 google.com 2>/dev/null |grep rtt",
-                                      stdout=subprocess.PIPE, shell=True).communicate()[0].strip()
-        pingMs = -1
+    def getPingTime(cls, dest):
+        pingStr = subprocess.Popen("timeout 1 ping -c 1 " + dest + " 2>/dev/null |grep rtt",
+                                   stdout=subprocess.PIPE, shell=True).communicate()[0].strip()
+        pingMs = 0
         if len(pingStr) > 0: 
             m = Status.pingRe.match(pingStr)
             if m != None: pingMs = min(round(float(m.group(1))), 999)
@@ -45,6 +46,7 @@ class Status():
     def getBattery(cls):
         onBatt = False
         perc = 0
+        charged = False
         f = open("/proc/acpi/battery/BAT0/state", "r")
         rate = 0
         outstr = "00:00"
@@ -52,12 +54,16 @@ class Status():
             tokens = line.split()
             try:
                 if tokens[0] == "charging" and tokens[2] == "discharging": onBatt = True
+                elif tokens[0] == "charging" and tokens[2] == "charged": charged = True
                 elif tokens[0] == "present" and tokens[1] == "rate:": rate = float(tokens[2])
                 elif tokens[0] == "remaining": remaining = float(tokens[2])
             except ValueError: 
                 pass
         f.close()
-        if rate != 0:  
+        if charged:
+            outstr = ""
+            perc = 100.0
+        elif rate != 0:  
             f = open("/proc/acpi/battery/BAT0/info", "r")
             for line in f.readlines():
                 tokens = line.split()
@@ -94,7 +100,8 @@ class Status():
         Status.lastTime = newTime
         indiff = (Status.inb - inb) / timeDiff
         outdiff = (Status.outb - outb) / timeDiff
-        return "%03d" % (indiff/1024) +":"+"%03d" % (outdiff/1024) +"K/s"
+        return (indiff/1024, outdiff/1024)
+        #return "%03d" % (indiff/1024) +":"+"%03d" % (outdiff/1024) +"K/s "
     getNet = classmethod(getNet)
 
 

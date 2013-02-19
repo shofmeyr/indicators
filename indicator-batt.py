@@ -45,7 +45,7 @@ class FetcherThread(threading.Thread):
                 else: 
                     self.parent.setIcon("gpm-battery-%03d-charging" % perc)
                     if battTime == "00:00": self.parent.updateText("")
-            time.sleep(1)
+            time.sleep(5)
             i += 1
 
 class IndicatorBatt:
