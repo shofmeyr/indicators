@@ -7,18 +7,21 @@
 
 # gets gmail from atom feed
 
-import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, pygame, feedparser, urllib, \
-    pynotify, optparse, getpass
+import sys, os, time, logging, gtk, appindicator, threading, gnomekeyring, \
+    pygame, feedparser, urllib, pynotify, optparse, getpass
 
 optParser = optparse.OptionParser()
 optParser.add_option("-u", action = "store", type = "string", dest = "username",
-                            default = "", help = "Username for gmail account. Password is found in gnome keyring.")
+                     default = "", 
+                     help = "Username for gmail account. Password is found in gnome keyring.")
 optParser.add_option("-a", action = "store", type = "string", dest = "account", 
-                            default = "https://mail.google.com/mail", help = "Gmail account http address")
+                     default = "https://mail.google.com/mail", 
+                     help = "Gmail account http address")
 optParser.add_option("-i", action = "store", type = "string", dest = "id", 
-                            default = "id", help = "A unique id")
+                     default = "id", help = "A unique id")
 optParser.add_option("-s", action = "store", type = "string", dest = "sound", 
-                     default = "/usr/share/sounds/ubuntu/stereo/message-new-instant.ogg", help = "sound file")
+                     default = "/usr/share/sounds/ubuntu/stereo/message-new-instant.ogg", 
+                     help = "sound file")
 optParser.add_option("-c", action = "store", type = "string", dest = "color",
                      default = "blue", help = "color for new message icon (red or blue)")
 options = optParser.parse_args()[0]
@@ -62,7 +65,8 @@ class Gmail():
     def __init__(self, username, userkey):
         self.username = username
         self.passwd = GnomeKeyring.getPasswd(userkey)
-        if self.passwd == None: logging.error("Cannot get password for", username, "from gnome keyring")
+        if self.passwd == None: 
+            logging.error("Cannot get password for", username, "from gnome keyring")
         self.unreadCount = 0
         self.msgIds = {}
         self.opener = urllib.FancyURLopener()
@@ -82,8 +86,8 @@ class Gmail():
             for entry in atom.entries:
                 author = entry.author.split("(")[0]
                 msgId = int(entry.id.split(":")[2])
-                headers.append([entry.author + ": " + entry.title, msgId])
-                # print headers[-1][0], id
+                headers.append([entry.author + ": " + entry.title + "\n<" + entry.summary + ">", msgId])
+                #print headers[-1][0], id
                 if not msgId in self.msgIds:
                     # Now pop up the message
                     pynotify.init(self.username)
@@ -139,6 +143,7 @@ class IndicatorGmail:
         self.ind.set_label("")
         self.menu = gtk.Menu()
         self.gmail = Gmail(options.username, options.username)
+        self.addToMenu("Quit", "quit", "-1")
         self.addToMenu(options.username, options.account + "/#inbox", "0")
         self.menu.show_all()
         self.ind.set_menu(self.menu)
@@ -151,10 +156,11 @@ class IndicatorGmail:
         self.checking_mail = True
         headers, msgIds = self.gmail.getHeaders()
         hasChanged = False
-        # remove messages that are no longer in the list, skipping the first element
-        first = True
+        # remove messages that are no longer in the list, skipping the first two elements
+        numElems = 0
         for child in self.menu.get_children(): 
-            if first: first = False
+            numElems += 1
+            if numElems <= 2: pass
             elif not child.getMsgId() in msgIds: 
                 hasChanged = True
                 self.menu.remove(child) 
@@ -163,9 +169,11 @@ class IndicatorGmail:
             try:
                 if msgIds[h[1]] == "New": 
                     hasChanged = True
-                    self.addToMenu("       " + h[0], options.account + "/#inbox/%x" % h[1], h[1])
+                    self.addToMenu("       " + h[0], 
+                                   options.account + "/#inbox/%x" % h[1], h[1])
             except Exception as ex:
                 logging.error("Error setting menu:", ex.message)
+
         # set the text on the panel
         num_messages = len(headers)
         if num_messages > 21: num_messages = 21
@@ -180,7 +188,11 @@ class IndicatorGmail:
         return gtk.TRUE
 
     def onMailActivated(self, event=None):
-        os.system("/usr/bin/firefox " + event.getMsg())
+        if event.getMsg() == "quit":
+            sys.exit(0)
+        else:
+            logging.info("/usr/bin/firefox " + event.getMsg())
+            os.system("/usr/bin/firefox " + event.getMsg())
         
     def addToMenu(self, text, msg, msgId):
         i = MsgMenuItem(text, msg, msgId)
